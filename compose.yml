@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      - MYSQL_USER=poney
+      - MYSQL_PASSWORD=poney
+      - MYSQL_DATABASE=forms
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3306:3306"
+      - "33060:33060"

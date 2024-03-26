@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Form {
+  id                           String                       @db.VarChar(255)
+  login                        String                       @db.VarChar(255)
+  title                        String                       @db.Text
+  description                  String?                      @db.Text
+  successMessage               String?                      @map("success_message") @db.Text
+  active                       Boolean?                     @default(false)
+  access                       String?                      @db.VarChar(255)
+  // access should be an enum (legacy code from V1) current supported values : 
+  // PROMO, ASSO, COTIZ, RESTRICTED, CS, ADVANCED, ALL, LINK
+  accessMeta                   String?                      @map("access_meta") @db.VarChar(255)
+  createdAt                    DateTime                     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                    DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  backgroundUrl                String?                      @map("background_url") @db.Text
+  logoUrl                      String?                      @map("logo_url") @db.Text
+  anonym                       Boolean?                     @default(false)
+  uniqueAnswer                 Boolean?                     @default(false) @map("unique_answer")
+  secured                      Boolean?                     @default(false)
+  paps                         Boolean?                     @default(false)
+  papsStart                    DateTime?                    @map("paps_start") @db.Timestamp(0)
+  editable                     Boolean?                     @default(true)
+  papsSize                     Int?                         @map("paps_size")
+  answers                      Answer[]
+  moderators                   Moderator[]
+  can_answer                   CanAnswer[]
+  choices                      Choice[]
+  fields                       Field[]
+  papsChoices                  PapsChoice[]
+  securedFormsAdminCredentials SecuredFormAdminCredentials?
+  securedFormKeys              SecuredFormKey[]
+  uniqueLink                   UniqueLink[]
+  SecuredFormUser              SecuredFormUser[]
+
+  @@id([id])
+}
+
+model Field {
+  id          String    @default(uuid()) @db.VarChar(255)
+  formId      String    @map("form_id") @db.VarChar(255)
+  type        FieldType
+  question    Bytes?    @db.MediumBlob
+  description String?   @db.Text
+  index       Int       @default(-1)
+  required    Boolean   @default(false)
+  meta        String?   @db.Text
+  choices     Choice[]
+  form        Form      @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade) // if we delete a form, we delete all its fields
+
+  @@id([id, formId])
+  @@index([formId])
+}
+
+model Choice {
+  id      Int     @default(autoincrement())
+  fieldId String  @map("field_id") @db.VarChar(255)
+  formId  String  @map("form_id") @db.VarChar(255)
+  data    String? @db.Text
+  form    Form    @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade) // if we delete a form, we delete all its choices
+  field   Field   @relation(fields: [fieldId, formId], references: [id, formId], onDelete: Cascade, onUpdate: Cascade) // if we delete a field, we delete all its choices
+
+  @@id([id, fieldId, formId])
+  @@index([fieldId, formId])
+  @@index([formId])
+}
+
+model Moderator {
+  moderatorLogin String @map("moderator_login") @db.VarChar(255)
+  formId         String @map("form_id") @db.VarChar(255)
+  Form           Form?  @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([moderatorLogin, formId])
+  @@index([formId])
+}
+
+model Answer {
+  id               Int             @id @default(autoincrement())
+  formId           String          @map("form_id") @db.VarChar(255)
+  by               String?         @default("Anonyme") @db.VarChar(255)
+  data             String          @db.Text
+  cryptedBy        Int?            @unique() @map("crypted_by")
+  signature        Bytes?          @db.Blob
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+  papsChoiceId     Int?            @map("paps_choice_id")
+  fullname         String?         @db.VarChar(255)
+  lastScan         DateTime?       @map("last_scan") @db.Timestamp(0)
+  form             Form            @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  papsChoices      PapsChoice?     @relation(fields: [papsChoiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  securedFormsKeys SecuredFormKey? @relation(fields: [cryptedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([formId])
+  @@index([papsChoiceId])
+}
+
+model CanAnswer {
+  userId String @map("user_id") @db.VarChar(255)
+  formId String @map("form_id") @db.VarChar(255)
+  form   Form   @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, formId])
+  @@index([formId])
+}
+
+model PapsChoice {
+  id      Int      @id @default(autoincrement())
+  papsId  String   @map("paps_id") @db.VarChar(255)
+  name    String   @db.VarChar(255)
+  size    Int      @default(0)
+  answers Answer[]
+  form    Form     @relation(fields: [papsId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([papsId])
+}
+
+model SecuredFormAdminCredentials {
+  voteId            String @id @map("vote_id") @db.VarChar(255)
+  publicKey         Bytes? @map("public_key") @db.Blob
+  cryptedPrivateKey Bytes? @map("enc_priv_key") @db.Blob
+  form              Form   @relation(fields: [voteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model SecuredFormKey {
+  id             Int     @id @default(autoincrement())
+  voteId         String  @map("vote_id") @db.VarChar(255)
+  cryptedPublic  Bytes   @map("crypted_public") @db.Blob
+  cryptedPrivate Bytes   @map("crypted_private") @db.Blob
+  aesChecksum    Bytes   @db.Blob
+  answer         Answer?
+  form           Form    @relation(fields: [voteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([voteId])
+}
+
+model SecuredFormUser {
+  id        Int     @id @default(autoincrement())
+  email     String? @db.VarChar(255)
+  firstName String? @db.VarChar(255)
+  lastName  String? @db.VarChar(255)
+  voteId    String  @db.VarChar(255)
+  voted     Boolean @default(false)
+  form      Form    @relation(fields: [voteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([voteId])
+}
+
+model UniqueLink {
+  key      String    @id @db.VarChar(255)
+  formId   String    @map("form_id") @db.VarChar(255)
+  name     String?   @db.Text
+  active   Boolean
+  expireAt DateTime? @map("expire_at") @db.Timestamp(0)
+  form     Form      @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([formId])
+}
+
+enum FieldType {
+  longq
+  shortq
+  mcq
+  drop
+  rank
+  slider
+  text
+}

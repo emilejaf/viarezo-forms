@@ -1,0 +1,16 @@
+{
+  "name": "FormsV2",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --parallel build",
+    "start": "pnpm run --parallel start",
+    "lint": "pnpm run --parallel lint",
+    "test": "pnpm run --parallel test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

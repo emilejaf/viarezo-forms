@@ -1,0 +1,75 @@
+image: node:lts
+
+stages:
+  - test
+  - deploy
+
+services:
+  - mariadb:latest
+
+variables:
+  MYSQL_DATABASE: forms
+  MYSQL_ROOT_PASSWORD: root
+
+.install:
+  variables:
+    DATABASE_URL: mysql://root:$MYSQL_ROOT_PASSWORD@mariadb:3306/forms
+  before_script:
+    - corepack enable
+    - pnpm config set store-dir ${CI_PROJECT_DIR}/${PROJECT_ROOT}/.pnpm-store
+    - pnpm install
+    # Wait for mariadb to be ready
+    - sleep 30
+    - cd api
+    - pnpx prisma migrate dev --name init
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+
+test:
+  stage: test
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+  allow_failure: false
+  variables:
+    SESSION_SECRET: averylongpasswordwithmorethan32chars
+    COTIZ_SECRET_TOKEN: TEST
+    MAIL_HOST: localhost
+    WEB_URL: http://localhost:3000
+    API_URL: http://localhost:4000
+  extends: .install
+  script:
+    - pnpm lint
+    - pnpm test
+
+deploy:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${REGISTRY_ENDPOINT}\":{\"auth\":\"$(printf "%s:%s" "robot\$${REGISTRY_USERNAME}" "${REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    # Build and push web image
+    - >-
+      /kaniko/executor 
+      --context "${CI_PROJECT_DIR}" 
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile" 
+      --target web 
+      --destination "${REGISTRY_ENDPOINT}/forms/web:latest"
+    # Build and push api image
+    - >-
+      /kaniko/executor 
+      --context "${CI_PROJECT_DIR}" 
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile" 
+      --target api 
+      --destination "${REGISTRY_ENDPOINT}/forms/api:latest"

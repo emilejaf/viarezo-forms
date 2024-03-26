@@ -1,0 +1,11 @@
+**/node_modules
+
+.git
+.gitignore
+
+# Ignore environment files
+**/.env
+
+# Ignore build output
+**/dist
+#**/.next

@@ -1,0 +1,10 @@
+html
+    body 
+        div(style="width: 100%; text-align: center;")
+            h2(style="color: red; font-weight: 900;") ATTENTION : Ce mail ne sera pas ré-envoyé !
+            img(src=`https://forms.viarezo.fr/img/logo.png`, style="height: 10rem; width: auto; margin: 1rem auto;")
+            h2 Vous avez été invité.e à participer au vote suivant :
+            h3= title
+            p(style="margin: 2rem 0; font-style: italic;")
+                | Pour participer à ce vote cliquez sur le bouton ci-dessous, seul ce lien peut vous permettre d'accéder au vote.
+                a(href=`${url}`, style="display: inline-block; padding: .5em; margin: 1rem auto; background: #2869d1; border-radius: 5px; color: white; font-size: 2rem;") Participer au vote

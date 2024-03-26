@@ -1,0 +1,39 @@
+.ql-clipboard {
+    left: -100000px;
+    height: 1px;
+    overflow-y: hidden;
+    position: absolute;
+    top: 50%;
+}
+
+.ql-editor {
+    cursor: text;
+    min-height: 80px;
+    outline: none;
+}
+
+.ql-editor blockquote {
+    border-left: 4px solid #ccc;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    padding-left: 16px 
+}
+
+.ql-editor ol {
+    list-style-position: inside;
+    list-style-type: decimal;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+.ql-editor ul {
+    list-style-position: inside;
+    list-style-type: disc;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+.ql-active {
+    border-color: #777;
+    @apply bg-accent text-accent-foreground;
+}
